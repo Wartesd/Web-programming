@@ -1,0 +1,4 @@
+<?php
+$str = " uaau uttu ubbu u77u uhau u55u ";
+preg_match_all("/\bp.p\b/", $str, $matches);
+print_r($matches[0]);
