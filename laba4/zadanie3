@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Подсчёт слов и символов</title>
+</head>
+<body>
+    <textarea id="textInput" rows="5" cols="50"></textarea><br>
+    <button onclick="countText()">Посчитать</button>
+    <p id="result"></p>
+
+    <script>
+        function countText() {
+            const text = document.getElementById('textInput').value;
+            
+            // Подсчёт символов (включая пробелы)
+            const charCount = text.length;
+            
+            // Подсчёт слов (учитывает слова с пробелами внутри)
+            const wordCount = text.trim() === '' ? 0 : text.split(/\s+/).length;
+            
+            document.getElementById('result').innerHTML = 
+                `Слов: ${wordCount}<br>Символов: ${charCount}`;
+        }
+    </script>
+</body>
+</html>
