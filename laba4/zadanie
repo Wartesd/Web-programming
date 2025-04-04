@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<body>
+<script>
+  const str = 'a1b2c3';
+  
+  // 1. Замена чисел на их кубы
+  const cubes = str.replace(/\d+/g, m => m ** 3);
+  document.write(`Кубы: ${cubes}<br>`); // a1b8c27
+  
+  // 2. Замена чисел на сумму цифр (для однозначных = само число)
+  const sum = str.replace(/\d+/g, m => [...m].reduce((s, d) => s + +d, 0));
+  document.write(`Сумма цифр: ${sum}`); // a1b2c3
+</script>
+</body>
+</html>
