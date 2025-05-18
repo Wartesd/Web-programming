@@ -1,0 +1,145 @@
+<?php
+// Конфигурация базы данных
+define('DB_HOST', 'db');
+define('DB_USER', 'root');
+define('DB_PASS', 'helloworld');
+define('DB_NAME', 'web');
+
+class Database {
+    private $connection;
+
+    public function __construct() {
+        $this->connection = new mysqli(DB_HOST, DB_USER, DB_PASS, DB_NAME);
+        
+        if ($this->connection->connect_errno) {
+            throw new Exception("MySQL connection failed: " . $this->connection->connect_error);
+        }
+    }
+
+    public function insertAd(string $email, string $title, string $category, string $description): bool {
+        $stmt = $this->connection->prepare("INSERT INTO ad (email, title, description, category) VALUES (?, ?, ?, ?)");
+        $stmt->bind_param("ssss", $email, $title, $description, $category);
+        return $stmt->execute();
+    }
+
+    public function getAds(): array {
+        $ads = [];
+        $result = $this->connection->query("SELECT * FROM ad ORDER BY created DESC");
+        
+        if ($result) {
+            while ($row = $result->fetch_assoc()) {
+                $ads[] = $row;
+            }
+            $result->free();
+        }
+        
+        return $ads;
+    }
+
+    public function close(): void {
+        $this->connection->close();
+    }
+}
+
+try {
+    $db = new Database();
+    
+    // Обработка POST запроса
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $email = filter_input(INPUT_POST, 'email', FILTER_VALIDATE_EMAIL);
+        $title = htmlspecialchars($_POST['title'] ?? '');
+        $category = htmlspecialchars($_POST['category'] ?? '');
+        $description = htmlspecialchars($_POST['description'] ?? '');
+        
+        if ($email && $title && $category && $description) {
+            $db->insertAd($email, $title, $category, $description);
+        }
+    }
+    
+    $advertisements = $db->getAds();
+    $db->close();
+    
+} catch (Exception $e) {
+    error_log("Database error: " . $e->getMessage());
+    die("An error occurred. Please try again later.");
+}
+?>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advertisement Board</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        form { margin-bottom: 30px; padding: 20px; background: #f5f5f5; border-radius: 5px; }
+        label { display: block; margin: 10px 0; }
+        input, textarea, select { width: 100%; padding: 8px; margin-top: 5px; }
+        textarea { height: 100px; }
+        button { padding: 10px 20px; background: #4CAF50; color: white; border: none; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Advertisement Board</h1>
+    
+    <form method="post">
+        <label>
+            Email:
+            <input type="email" name="email" required>
+        </label>
+        
+        <label>
+            Title:
+            <input type="text" name="title" required>
+        </label>
+        
+        <label>
+            Category:
+            <select name="category" required>
+                <option value="">-- Select Category --</option>
+                <option value="Example 1">Example 1</option>
+                <option value="Example 2">Example 2</option>
+                <option value="Example 3">Example 3</option>
+            </select>
+        </label>
+        
+        <label>
+            Description:
+            <textarea name="description" required></textarea>
+        </label>
+        
+        <button type="submit">Submit Advertisement</button>
+    </form>
+    
+    <h2>Current Advertisements</h2>
+    
+    <?php if (empty($advertisements)): ?>
+        <p>No advertisements yet.</p>
+    <?php else: ?>
+        <table>
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Title</th>
+                    <th>Description</th>
+                    <th>Category</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($advertisements as $ad): ?>
+                    <tr>
+                        <td><?= htmlspecialchars($ad['email']) ?></td>
+                        <td><?= htmlspecialchars($ad['title']) ?></td>
+                        <td><?= htmlspecialchars($ad['description']) ?></td>
+                        <td><?= htmlspecialchars($ad['category']) ?></td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
+    <?php endif; ?>
+</body>
+</html>
