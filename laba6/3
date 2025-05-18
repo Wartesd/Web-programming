@@ -1,0 +1,113 @@
+<?php
+function executeHttpRequest($endpoint, $httpMethod = 'GET', $requestData = null, array $customHeaders = []) 
+{
+    $curlSession = curl_init();
+    
+    $curlOptions = [
+        CURLOPT_URL => $endpoint,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HEADER => false,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_TIMEOUT => 10
+    ];
+
+    // Настройка метода запроса
+    switch (strtoupper($httpMethod)) {
+        case 'POST':
+            $curlOptions[CURLOPT_POST] = true;
+            break;
+        case 'PUT':
+        case 'DELETE':
+        case 'PATCH':
+            $curlOptions[CURLOPT_CUSTOMREQUEST] = strtoupper($httpMethod);
+            break;
+    }
+
+    // Подготовка данных запроса
+    if ($requestData !== null) {
+        if (is_array($requestData)) {
+            $requestData = json_encode($requestData);
+            $customHeaders[] = 'Content-Type: application/json';
+        }
+        $curlOptions[CURLOPT_POSTFIELDS] = $requestData;
+    }
+
+    // Добавление кастомных заголовков
+    if (!empty($customHeaders)) {
+        $curlOptions[CURLOPT_HTTPHEADER] = $customHeaders;
+    }
+
+    curl_setopt_array($curlSession, $curlOptions);
+    
+    $responseContent = curl_exec($curlSession);
+    $errorMessage = curl_error($curlSession);
+    $statusCode = curl_getinfo($curlSession, CURLINFO_HTTP_CODE);
+    
+    curl_close($curlSession);
+
+    // Обработка результата
+    echo "Запрос к $endpoint [$httpMethod]: ";
+    
+    if (!empty($errorMessage)) {
+        echo "Ошибка соединения: $errorMessage\n";
+        return;
+    }
+    
+    if ($statusCode >= 400) {
+        echo "Ошибка сервера ($statusCode)\n";
+        echo "Ответ: " . substr($responseContent, 0, 200) . "\n";
+        return;
+    }
+    
+    echo "Успешно ($statusCode)\n";
+    
+    $decodedResponse = json_decode($responseContent, true);
+    if (json_last_error() === JSON_ERROR_NONE) {
+        echo "Данные ответа:\n";
+        print_r($decodedResponse);
+    } else {
+        echo "Текст ответа:\n";
+        echo $responseContent;
+    }
+    
+    echo "\n";
+}
+
+// Тестовые запросы
+$testCases = [
+    [
+        'url' => 'https://jsonplaceholder.typicode.com/posts/1',
+        'method' => 'GET',
+        'description' => 'Успешный GET запрос'
+    ],
+    [
+        'url' => 'https://jsonplaceholder.typicode.com/posts/999999',
+        'method' => 'GET',
+        'description' => 'Запрос несуществующего ресурса (404)'
+    ],
+    [
+        'url' => 'https://nonexistent-domain.test',
+        'method' => 'GET',
+        'description' => 'Запрос к несуществующему домену'
+    ],
+    [
+        'url' => 'https://jsonplaceholder.typicode.com/posts',
+        'method' => 'POST',
+        'data' => [
+            'title' => 'Новый пост',
+            'body' => 'Содержание поста',
+            'userId' => 1
+        ],
+        'description' => 'Создание нового поста'
+    ]
+];
+
+foreach ($testCases as $case) {
+    echo "=== {$case['description']} ===\n";
+    executeHttpRequest(
+        $case['url'],
+        $case['method'] ?? 'GET',
+        $case['data'] ?? null,
+        $case['headers'] ?? []
+    );
+}
