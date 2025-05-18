@@ -1,0 +1,53 @@
+<?php
+// Функция для выполнения HTTP-запросов
+function makeRequest($url, $method = 'GET', $data = null) {
+    $request = curl_init($url);
+    curl_setopt($request, CURLOPT_RETURNTRANSFER, true);
+    
+    if ($method !== 'GET') {
+        if ($method === 'POST') {
+            curl_setopt($request, CURLOPT_POST, true);
+        } else {
+            curl_setopt($request, CURLOPT_CUSTOMREQUEST, $method);
+        }
+        
+        if ($data) {
+            curl_setopt($request, CURLOPT_HTTPHEADER, ['Content-Type: application/json']);
+            curl_setopt($request, CURLOPT_POSTFIELDS, json_encode($data));
+        }
+    }
+    
+    $result = curl_exec($request);
+    curl_close($request);
+    return $result;
+}
+
+// Примеры использования
+$apiEndpoint = 'https://jsonplaceholder.typicode.com/posts';
+
+// Получаем данные
+$getResponse = makeRequest($apiEndpoint.'/1');
+print "Полученные данные: ".$getResponse.PHP_EOL;
+
+// Создаем новую запись
+$postData = [
+    'title' => 'Привет',
+    'body' => 'Тестовое сообщение',
+    'userId' => 1
+];
+$postResponse = makeRequest($apiEndpoint, 'POST', $postData);
+print "Результат создания: ".$postResponse.PHP_EOL;
+
+// Обновляем запись
+$updateData = [
+    'id' => 1,
+    'title' => 'Обновлено',
+    'body' => 'Измененный текст',
+    'userId' => 1
+];
+$putResponse = makeRequest($apiEndpoint.'/1', 'PUT', $updateData);
+print "Результат обновления: ".$putResponse.PHP_EOL;
+
+// Удаляем запись
+$deleteResponse = makeRequest($apiEndpoint.'/1', 'DELETE');
+print "Результат удаления: ".$deleteResponse.PHP_EOL;
