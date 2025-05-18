@@ -1,0 +1,98 @@
+<?php
+function sendHttpRequest($url, $method = 'GET', $payload = null, array $headers = []) {
+    $curlHandle = curl_init();
+    
+    $options = [
+        CURLOPT_URL => $url,
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_HEADER => false,
+        CURLOPT_FOLLOWLOCATION => true,
+        CURLOPT_MAXREDIRS => 3
+    ];
+
+    if ($method !== 'GET') {
+        if ($method === 'POST') {
+            $options[CURLOPT_POST] = true;
+        } else {
+            $options[CURLOPT_CUSTOMREQUEST] = strtoupper($method);
+        }
+
+        if ($payload !== null) {
+            if (is_array($payload)) {
+                $payload = json_encode($payload);
+                $headers[] = 'Content-Type: application/json';
+            }
+            $options[CURLOPT_POSTFIELDS] = $payload;
+        }
+    }
+
+    if (!empty($headers)) {
+        $options[CURLOPT_HTTPHEADER] = $headers;
+    }
+
+    curl_setopt_array($curlHandle, $options);
+    $response = curl_exec($curlHandle);
+    curl_close($curlHandle);
+
+    return $response;
+}
+
+// Демонстрация работы с различными типами запросов
+$apiBaseUrl = 'https://jsonplaceholder.typicode.com/posts';
+
+// Пример GET запроса с кастомными заголовками
+$customHeaders = [
+    'X-Requested-With: PHP-CURL',
+    'Accept: application/json'
+];
+
+echo "GET запрос с дополнительными заголовками:\n";
+var_dump(sendHttpRequest(
+    $apiBaseUrl . '/1',
+    'GET',
+    null,
+    $customHeaders
+));
+
+// Пример POST запроса с JSON данными
+$postData = [
+    'title' => 'Новый пост',
+    'body' => 'Содержание поста',
+    'userId' => 101
+];
+
+echo "\nPOST запрос с JSON данными:\n";
+print_r(sendHttpRequest(
+    $apiBaseUrl,
+    'POST',
+    $postData
+));
+
+// Пример GET запроса с параметрами URL
+$queryParams = ['userId' => 5];
+echo "\nGET запрос с параметрами URL:\n";
+var_dump(sendHttpRequest(
+    $apiBaseUrl . '?' . http_build_query($queryParams)
+);
+
+// Пример PUT запроса
+$updateData = [
+    'id' => 1,
+    'title' => 'Обновленный заголовок',
+    'body' => 'Новое содержание',
+    'userId' => 1
+];
+
+echo "\nPUT запрос для обновления данных:\n";
+print_r(sendHttpRequest(
+    $apiBaseUrl . '/1',
+    'PUT',
+    $updateData
+));
+
+// Пример DELETE запроса
+echo "\nDELETE запрос:\n";
+var_dump(sendHttpRequest(
+    $apiBaseUrl . '/1',
+    'DELETE'
+));
