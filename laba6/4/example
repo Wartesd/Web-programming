@@ -1,0 +1,106 @@
+<?php
+class ApiClient 
+{
+    private $baseUrl;
+    private $headers = [
+        'Content-Type: application/json',
+        'Accept: application/json'
+    ];
+
+    public function __construct(string $baseUrl, array $headers = []) 
+    {
+        $this->baseUrl = rtrim($baseUrl, '/');
+        $this->headers = array_merge($this->headers, $headers);
+    }
+
+    private function sendRequest(string $method, string $endpoint = '', array $data = null): array
+    {
+        $url = $this->baseUrl . $endpoint;
+        $ch = curl_init($url);
+        
+        $options = [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_HTTPHEADER => $this->headers,
+            CURLOPT_CUSTOMREQUEST => $method,
+        ];
+
+        if ($data !== null) {
+            $options[CURLOPT_POSTFIELDS] = json_encode($data);
+        }
+
+        curl_setopt_array($ch, $options);
+        
+        $response = curl_exec($ch);
+        $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $error = curl_error($ch);
+        curl_close($ch);
+
+        if ($error) {
+            throw new RuntimeException("CURL Error: " . $error);
+        }
+
+        $decodedResponse = json_decode($response, true) ?? $response;
+
+        return [
+            'status' => $statusCode,
+            'data' => $decodedResponse
+        ];
+    }
+
+    public function getRequest(string $endpoint = ''): array 
+    {
+        return $this->sendRequest('GET', $endpoint);
+    }
+
+    public function postRequest(string $endpoint = '', array $data): array 
+    {
+        return $this->sendRequest('POST', $endpoint, $data);
+    }
+
+    public function putRequest(string $endpoint = '', array $data): array 
+    {
+        return $this->sendRequest('PUT', $endpoint, $data);
+    }
+
+    public function deleteRequest(string $endpoint = ''): array 
+    {
+        return $this->sendRequest('DELETE', $endpoint);
+    }
+}
+
+// Пример использования
+try {
+    $api = new ApiClient('https://jsonplaceholder.typicode.com/posts', [
+        'X-Custom-Header: MyValue'
+    ]);
+
+    // GET запрос
+    $posts = $api->getRequest('/1');
+    echo "GET Response:\n";
+    print_r($posts['data']);
+
+    // POST запрос
+    $newPost = $api->postRequest('', [
+        'title' => 'Sample Title',
+        'body' => 'Sample Text',
+        'userId' => 1
+    ]);
+    echo "\nPOST Response:\n";
+    print_r($newPost['data']);
+
+    // PUT запрос
+    $updatedPost = $api->putRequest('/1', [
+        'title' => 'Updated Title',
+        'body' => 'Updated Text'
+    ]);
+    echo "\nPUT Response:\n";
+    print_r($updatedPost['data']);
+
+    // DELETE запрос
+    $deleteResponse = $api->deleteRequest('/1');
+    echo "\nDELETE Response:\n";
+    print_r($deleteResponse['data']);
+
+} catch (Exception $e) {
+    echo "API Error: " . $e->getMessage();
+}
